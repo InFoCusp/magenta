@@ -358,3 +358,110 @@ class KeyMelodyEncoderDecoder(encoder_decoder.EventSequenceEncoderDecoder):
 
     # Note-on event for that midi pitch.
     return self._min_note + class_index
+
+
+# Twisha - Added this new EncoderDecoder class for new model
+class MelodyPitchDifferenceEncoderDecoder(encoder_decoder.PitchDifferenceOneHotEncoding):
+  """Basic one hot encoding for melody events.
+
+  Encodes melody events as follows:
+    0 = no event,
+    1 = note-off event,
+    [2, self.num_classes) = note-on event for that pitch relative to the
+        [self._min_note, self._max_note) range.
+  """
+
+  def __init__(self, min_note, max_note):
+    """Initializes a MelodyOneHotEncoding object.
+
+    Args:
+      min_note: The minimum midi pitch the encoded melody events can have.
+      max_note: The maximum midi pitch (exclusive) the encoded melody events
+          can have.
+
+    Raises:
+      ValueError: If `min_note` or `max_note` are outside the midi range, or if
+          `max_note` is not greater than `min_note`.
+    """
+    if min_note < MIN_MIDI_PITCH:
+      raise ValueError('min_note must be >= 0. min_note is %d.' % min_note)
+    if max_note > MAX_MIDI_PITCH + 1:
+      raise ValueError('max_note must be <= 128. max_note is %d.' % max_note)
+    if max_note <= min_note:
+      raise ValueError('max_note must be greater than min_note')
+
+    self._min_note = min_note
+    self._max_note = max_note
+
+  @property
+  def num_classes(self):
+    num_notes = self._max_note - self._min_note
+    return 2*(num_notes) + 1 + NUM_SPECIAL_MELODY_EVENTS
+
+  @property
+  def default_event(self):
+    return MELODY_NO_EVENT
+
+  def encode_event(self, prev_event, curr_event, last_note):
+    """Collapses a melody event value into a zero-based index range.
+
+    Args:
+      event: A Melody event value. -2 = no event, -1 = note-off event,
+          [0, 127] = note-on event for that midi pitch.
+
+    Returns:
+      An int in the range [0, self.num_classes). 0 = no event,
+      1 = note-off event, [2, self.num_classes) = note-on event for
+      that pitch relative to the [self._min_note, self._max_note) range.
+
+    Raises:
+      ValueError: If `event` is a MIDI note not between self._min_note and
+          self._max_note, or an invalid special event value.
+    """
+    if prev_event < -NUM_SPECIAL_MELODY_EVENTS:
+      raise ValueError('invalid melody event value: %d' % prev_event)
+    if (prev_event >= 0) and (prev_event < self._min_note):
+      raise ValueError('melody event less than min note: %d < %d' % (
+        prev_event, self._min_note))
+    if prev_event > self._max_note:
+      raise ValueError('melody event greater than max note: %d >= %d' % (
+        prev_event, self._max_note))
+
+    if curr_event < -NUM_SPECIAL_MELODY_EVENTS:
+      raise ValueError('invalid melody event value: %d' % curr_event)
+    if (curr_event >= 0) and (curr_event < self._min_note):
+      raise ValueError('melody event less than min note: %d < %d' % (
+        curr_event, self._min_note))
+    if curr_event > self._max_note:
+      raise ValueError('melody event greater than max note: %d >= %d' % (
+        curr_event, self._max_note))
+
+    # import pdb
+    # pdb.set_trace()
+
+    if curr_event in {-1, -2}:
+      return curr_event + NUM_SPECIAL_MELODY_EVENTS
+    else:
+      # This case will occur only when the first few notes are -1 or -2.
+      # Make the difference 0 and return the index accordingly
+      if last_note in {-1, -2}:
+        return (self._max_note - self._min_note) + NUM_SPECIAL_MELODY_EVENTS
+      else:
+        difference = curr_event - last_note
+        return difference + (self._max_note - self._min_note) + NUM_SPECIAL_MELODY_EVENTS
+
+  def decode_event(self, index):
+    """Expands a zero-based index value to its equivalent melody event value.
+
+    Args:
+      index: An int in the range [0, self._num_model_events).
+          0 = no event, 1 = note-off event,
+          [2, self._num_model_events) =
+
+    Returns:
+      A Melody event value. -2 = no event, -1 = note-off event,
+      [0, 127] =
+    """
+    # if index < NUM_SPECIAL_MELODY_EVENTS:
+    #   return index - NUM_SPECIAL_MELODY_EVENTS
+    return index - NUM_SPECIAL_MELODY_EVENTS - (self._max_note - self._min_note)

@@ -192,5 +192,20 @@ default_configs = {
             dropout_keep_prob=0.5,
             attn_length=40,
             clip_norm=3,
+            learning_rate=0.001)),
+
+    'pitch_diff_rnn': MelodyRnnConfig(
+        magenta.protobuf.generator_pb2.GeneratorDetails(
+            id='pitch_diff_rnn',
+            description='Melody RNN with one-hot encoding of pitch difference.'),
+        magenta.music.PitchDifferenceOneHotEventSequenceEncoderDecoder(
+            magenta.music.MelodyPitchDifferenceEncoderDecoder(
+                min_note=DEFAULT_MIN_NOTE,
+                max_note=DEFAULT_MAX_NOTE)),
+        tf.contrib.training.HParams(
+            batch_size=128,
+            rnn_layer_sizes=[128, 128],
+            dropout_keep_prob=0.5,
+            clip_norm=5,
             learning_rate=0.001))
 }
