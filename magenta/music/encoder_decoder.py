@@ -1058,7 +1058,7 @@ class PitchDifferenceOneHotEncoding(object):
     pass
 
   @abc.abstractmethod
-  def encode_event(self, event):
+  def encode_event(self, prev_event, curr_event, last_note):
     """Convert from an event value to an encoding integer.
 
     Args:
