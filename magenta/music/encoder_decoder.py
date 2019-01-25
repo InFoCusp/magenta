@@ -1033,6 +1033,7 @@ class EncoderPipeline(pipeline.Pipeline):
     encoded = self._encoder_decoder.encode(seq)
     return [encoded]
 
+
 # Twisha - Added this class equivalent to OneHotEncoing
 class PitchDifferenceOneHotEncoding(object):
   """An interface for specifying a one-hot encoding of individual events."""
@@ -1094,6 +1095,7 @@ class PitchDifferenceOneHotEncoding(object):
       one.
     """
     return 1
+
 
 # Twisha - Added this to change the encode class. Equivalent to EventSequenceEncoderDecoder
 class PitchDifferenceEncoderDecoder(object):
@@ -1363,6 +1365,7 @@ class PitchDifferenceEncoderDecoder(object):
               softmax[i][softmax_pos][sub_softmax_i][index[sub_softmax_i]])
       all_loglik.append(loglik)
     return all_loglik
+
 
 # Twisha - Added this one hot encoder class. Equivalent to OneHotIndexEventSequenceEncoderDecoder
 class PitchDifferenceOneHotEventSequenceEncoderDecoder(PitchDifferenceEncoderDecoder):

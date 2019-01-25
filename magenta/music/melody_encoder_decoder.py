@@ -361,7 +361,8 @@ class KeyMelodyEncoderDecoder(encoder_decoder.EventSequenceEncoderDecoder):
 
 
 # Twisha - Added this new EncoderDecoder class for new model
-class MelodyPitchDifferenceEncoderDecoder(encoder_decoder.PitchDifferenceOneHotEncoding):
+# class MelodyPitchDifferenceEncoderDecoder(encoder_decoder.PitchDifferenceOneHotEncoding):
+class MelodyPitchDifferenceEncoderDecoder(encoder_decoder.OneHotEncoding):
   """Basic one hot encoding for melody events.
 
   Encodes melody events as follows:
