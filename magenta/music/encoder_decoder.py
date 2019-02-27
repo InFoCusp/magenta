@@ -57,6 +57,7 @@ from magenta.pipelines import pipeline
 import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
+import h5py
 
 DEFAULT_STEPS_PER_BAR = constants.DEFAULT_STEPS_PER_BAR
 DEFAULT_LOOKBACK_DISTANCES = [DEFAULT_STEPS_PER_BAR, DEFAULT_STEPS_PER_BAR * 2]
@@ -1468,3 +1469,101 @@ class PitchDifferenceOneHotEventSequenceEncoderDecoder(PitchDifferenceEncoderDec
       events.append(self.class_index_to_event(label, events))
     return sum(self._one_hot_encoding.event_to_num_steps(event)
                for event in events)
+
+
+class EmbeddingOneHotEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
+  """An EventSequenceEncoderDecoder that produces a one-hot encoding."""
+
+  def __init__(self, one_hot_encoding):
+    """Initialize a OneHotEventSequenceEncoderDecoder object.
+
+    Args:
+      one_hot_encoding: A OneHotEncoding object that transforms events to and
+          from integer indices.
+    """
+    self._one_hot_encoding = one_hot_encoding
+
+  @property
+  def input_size(self):
+    return self._one_hot_encoding.num_classes
+
+  @property
+  def num_classes(self):
+    return self._one_hot_encoding.num_classes
+
+  @property
+  def default_event_label(self):
+    return self._one_hot_encoding.encode_event(
+        self._one_hot_encoding.default_event)
+
+  def events_to_input(self, events, position):
+    """Returns the input vector for the given position in the event sequence.
+
+    Returns a one-hot vector for the given position in the event sequence, as
+    determined by the one hot encoding.
+
+    Args:
+      events: A list-like sequence of events.
+      position: An integer event position in the event sequence.
+
+    Returns:
+      An input vector, a list of floats.
+    """
+
+    filename = '../../full_embedding_model2.h5'
+    f = h5py.File(filename, 'r')
+    W_vector_embedding = f['dense_1']['dense_1']['kernel:0'].value
+
+    input_ = [0.0] * self.input_size
+    input_[self._one_hot_encoding.encode_event(events[position])] = 1.0
+    input_embedding = np.matmul(input_, W_vector_embedding)
+    return input_embedding
+
+  def events_to_label(self, events, position):
+    """Returns the label for the given position in the event sequence.
+
+    Returns the zero-based index value for the given position in the event
+    sequence, as determined by the one hot encoding.
+
+    Args:
+      events: A list-like sequence of events.
+      position: An integer event position in the event sequence.
+
+    Returns:
+      A label, an integer.
+    """
+    return self._one_hot_encoding.encode_event(events[position])
+
+  def class_index_to_event(self, class_index, events):
+    """Returns the event for the given class index.
+
+    This is the reverse process of the self.events_to_label method.
+
+    Args:
+      class_index: An integer in the range [0, self.num_classes).
+      events: A list-like sequence of events. This object is not used in this
+          implementation.
+
+    Returns:
+      An event value.
+    """
+    return self._one_hot_encoding.decode_event(class_index)
+
+  def labels_to_num_steps(self, labels):
+    """Returns the total number of time steps for a sequence of class labels.
+
+    Args:
+      labels: A list-like sequence of integers in the range
+          [0, self.num_classes).
+
+    Returns:
+      The total number of time steps for the label sequence, as determined by
+      the one-hot encoding.
+    """
+    events = []
+    for label in labels:
+      events.append(self.class_index_to_event(label, events))
+    return sum(self._one_hot_encoding.event_to_num_steps(event)
+               for event in events)
+
+
