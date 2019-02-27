@@ -59,6 +59,8 @@ from magenta.music.encoder_decoder import OptionalEventSequenceEncoder
 from magenta.music.encoder_decoder import PitchDifferenceOneHotEventSequenceEncoderDecoder
 from magenta.music.encoder_decoder import PitchDifferenceEncoderDecoder
 
+from magenta.music.encoder_decoder import EmbeddingOneHotEventSequenceEncoderDecoder
+
 from magenta.music.events_lib import NonIntegerStepsPerBarError
 
 from magenta.music.lead_sheets_lib import extract_lead_sheet_fragments
