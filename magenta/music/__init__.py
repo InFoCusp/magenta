@@ -58,8 +58,10 @@ from magenta.music.encoder_decoder import OptionalEventSequenceEncoder
 # Twisha
 from magenta.music.encoder_decoder import PitchDifferenceOneHotEventSequenceEncoderDecoder
 from magenta.music.encoder_decoder import PitchDifferenceEncoderDecoder
-
+# Twisha
 from magenta.music.encoder_decoder import EmbeddingOneHotEventSequenceEncoderDecoder
+# Twisha
+from magenta.music.encoder_decoder import NextNoteDistributionEventSequenceEncoderDecoder
 
 from magenta.music.events_lib import NonIntegerStepsPerBarError
 
