@@ -1622,7 +1622,8 @@ class NextNoteDistributionEventSequenceEncoderDecoder(EventSequenceEncoderDecode
     Returns:
       An input vector, a list of floats.
     """
-    filename = '/home/twisha/Desktop/overall_proximity_count.npy'
+    # filename = '/home/twisha/Desktop/overall_proximity_count.npy'
+    filename = '/home/nisarg/inhouse_research/imusic/data/model_weights/overall_proximity_count.npy'
     overall_proximity_count = np.load(filename)
     # input_ = [0.0] * self.input_size
     index = self._one_hot_encoding.encode_event(events[position])
