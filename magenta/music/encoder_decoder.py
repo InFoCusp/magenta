@@ -1700,7 +1700,7 @@ class NeighborDistributionEventSequenceEncoderDecoder(EventSequenceEncoderDecode
 
   @property
   def input_size(self):
-    return self._one_hot_encoding.num_classes
+    return 5*self._one_hot_encoding.num_classes
 
   @property
   def num_classes(self):
