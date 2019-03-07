@@ -1734,7 +1734,7 @@ class NeighborDistributionEventSequenceEncoderDecoder(EventSequenceEncoderDecode
     neighbor1 = np.array(neighbor1, dtype='float')
     neighbor1[0] = neighbor1[0] / neighbor1.sum()
     neighbor1[1:] = neighbor1[1:]/neighbor1[1:].sum()
-    # neighbor1[index] += 1
+    neighbor1[index] += 1
 
     neighbor2 = overall_neighbors['overall_neighbor2_count'][index].copy()
     neighbor2 = np.array(neighbor2, dtype='float')
