@@ -243,7 +243,7 @@ default_configs = {
         magenta.protobuf.generator_pb2.GeneratorDetails(
             id='neighbor_dist_rnn',
             description='Melody RNN with neighbor note distribution encoded.'),
-        magenta.music.NextNoteDistributionEventSequenceEncoderDecoder(
+        magenta.music.NeighborDistributionEventSequenceEncoderDecoder(
             magenta.music.MelodyOneHotEncoding(
                 min_note=DEFAULT_MIN_NOTE,
                 max_note=DEFAULT_MAX_NOTE)),
