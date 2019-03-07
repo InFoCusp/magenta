@@ -1627,7 +1627,13 @@ class NextNoteDistributionEventSequenceEncoderDecoder(EventSequenceEncoderDecode
     overall_proximity_count = np.load(filename)
     # input_ = [0.0] * self.input_size
     index = self._one_hot_encoding.encode_event(events[position])
-    input_ = overall_proximity_count[index]
+
+    input_ = overall_proximity_count[index].copy()
+    input_ = np.array(input_, dtype='float')
+    input_[0] = input_[0] / input_.sum()
+    input_[1:] = input_[1:]/input_[1:].sum()
+    input_[index] += 1
+
     return input_
 
   def events_to_label(self, events, position):
@@ -1677,3 +1683,126 @@ class NextNoteDistributionEventSequenceEncoderDecoder(EventSequenceEncoderDecode
     return sum(self._one_hot_encoding.event_to_num_steps(event)
                for event in events)
 
+
+# Twisha - Added this encoder class which uses the context vector obtained directly from data instead of one hot vector
+# Equivalent to OneHotEventSequenceEncoderDecoder
+class NeighborDistributionEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
+  """An EventSequenceEncoderDecoder that produces a one-hot encoding."""
+
+  def __init__(self, one_hot_encoding):
+    """Initialize a OneHotEventSequenceEncoderDecoder object.
+
+    Args:
+      one_hot_encoding: A OneHotEncoding object that transforms events to and
+          from integer indices.
+    """
+    self._one_hot_encoding = one_hot_encoding
+
+  @property
+  def input_size(self):
+    return self._one_hot_encoding.num_classes
+
+  @property
+  def num_classes(self):
+    return self._one_hot_encoding.num_classes
+
+  @property
+  def default_event_label(self):
+    return self._one_hot_encoding.encode_event(
+        self._one_hot_encoding.default_event)
+
+  def events_to_input(self, events, position):
+    """Returns the input vector for the given position in the event sequence.
+
+    Returns a one-hot vector for the given position in the event sequence, as
+    determined by the one hot encoding.
+
+    Args:
+      events: A list-like sequence of events.
+      position: An integer event position in the event sequence.
+
+    Returns:
+      An input vector, a list of floats.
+    """
+    # filename = '/home/twisha/Desktop/overall_proximity_count.npy'
+    filename = '/home/nisarg/inhouse_research/imusic/data/model_weights/overall_neighbors.npz'
+    overall_neighbors = np.load(filename)
+
+    index = self._one_hot_encoding.encode_event(events[position])
+
+    neighbor1 = overall_neighbors['overall_neighbor1_count'][index].copy()
+    neighbor1 = np.array(neighbor1, dtype='float')
+    neighbor1[0] = neighbor1[0] / neighbor1.sum()
+    neighbor1[1:] = neighbor1[1:]/neighbor1[1:].sum()
+    # neighbor1[index] += 1
+
+    neighbor2 = overall_neighbors['overall_neighbor2_count'][index].copy()
+    neighbor2 = np.array(neighbor2, dtype='float')
+    neighbor2[0] = neighbor2[0] / neighbor2.sum()
+    neighbor2[1:] = neighbor2[1:] / neighbor2[1:].sum()
+
+    neighbor3 = overall_neighbors['overall_neighbor3_count'][index].copy()
+    neighbor3 = np.array(neighbor3, dtype='float')
+    neighbor3[0] = neighbor3[0] / neighbor3.sum()
+    neighbor3[1:] = neighbor3[1:] / neighbor3[1:].sum()
+
+    neighbor4 = overall_neighbors['overall_neighbor4_count'][index].copy()
+    neighbor4 = np.array(neighbor4, dtype='float')
+    neighbor4[0] = neighbor4[0] / neighbor4.sum()
+    neighbor4[1:] = neighbor4[1:] / neighbor4[1:].sum()
+
+    neighbor5 = overall_neighbors['overall_neighbor5_count'][index].copy()
+    neighbor5 = np.array(neighbor5, dtype='float')
+    neighbor5[0] = neighbor5[0] / neighbor5.sum()
+    neighbor5[1:] = neighbor5[1:] / neighbor5[1:].sum()
+
+    input_ = np.concatenate((neighbor1, neighbor2, neighbor3, neighbor4, neighbor5))
+
+    return input_
+
+  def events_to_label(self, events, position):
+    """Returns the label for the given position in the event sequence.
+
+    Returns the zero-based index value for the given position in the event
+    sequence, as determined by the one hot encoding.
+
+    Args:
+      events: A list-like sequence of events.
+      position: An integer event position in the event sequence.
+
+    Returns:
+      A label, an integer.
+    """
+    return self._one_hot_encoding.encode_event(events[position])
+
+  def class_index_to_event(self, class_index, events):
+    """Returns the event for the given class index.
+
+    This is the reverse process of the self.events_to_label method.
+
+    Args:
+      class_index: An integer in the range [0, self.num_classes).
+      events: A list-like sequence of events. This object is not used in this
+          implementation.
+
+    Returns:
+      An event value.
+    """
+    return self._one_hot_encoding.decode_event(class_index)
+
+  def labels_to_num_steps(self, labels):
+    """Returns the total number of time steps for a sequence of class labels.
+
+    Args:
+      labels: A list-like sequence of integers in the range
+          [0, self.num_classes).
+
+    Returns:
+      The total number of time steps for the label sequence, as determined by
+      the one-hot encoding.
+    """
+    events = []
+    for label in labels:
+      events.append(self.class_index_to_event(label, events))
+    return sum(self._one_hot_encoding.event_to_num_steps(event)
+               for event in events)

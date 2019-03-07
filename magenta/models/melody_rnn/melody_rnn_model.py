@@ -237,5 +237,20 @@ default_configs = {
             rnn_layer_sizes=[128, 128],
             dropout_keep_prob=0.5,
             clip_norm=5,
+            learning_rate=0.001)),
+
+    'neighbor_dist_rnn': MelodyRnnConfig(
+        magenta.protobuf.generator_pb2.GeneratorDetails(
+            id='neighbor_dist_rnn',
+            description='Melody RNN with neighbor note distribution encoded.'),
+        magenta.music.NextNoteDistributionEventSequenceEncoderDecoder(
+            magenta.music.MelodyOneHotEncoding(
+                min_note=DEFAULT_MIN_NOTE,
+                max_note=DEFAULT_MAX_NOTE)),
+        tf.contrib.training.HParams(
+            batch_size=128,
+            rnn_layer_sizes=[128, 128],
+            dropout_keep_prob=0.5,
+            clip_norm=5,
             learning_rate=0.001))
 }
