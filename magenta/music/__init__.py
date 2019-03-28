@@ -58,6 +58,8 @@ from magenta.music.encoder_decoder import OptionalEventSequenceEncoder
 # Twisha
 from magenta.music.encoder_decoder import PitchDifferenceOneHotEventSequenceEncoderDecoder
 from magenta.music.encoder_decoder import PitchDifferenceEncoderDecoder
+from magenta.music.encoder_decoder import PitchDifferenceOneHotEventSequenceEncoderDecoderBasic
+from magenta.music.encoder_decoder import PitchDifferenceEncoderDecoderBasic
 
 from magenta.music.events_lib import NonIntegerStepsPerBarError
 
@@ -74,6 +76,7 @@ from magenta.music.melody_encoder_decoder import KeyMelodyEncoderDecoder
 from magenta.music.melody_encoder_decoder import MelodyOneHotEncoding
 #Twisha
 from magenta.music.melody_encoder_decoder import MelodyPitchDifferenceEncoderDecoder
+from magenta.music.melody_encoder_decoder import MelodyPitchDifferenceEncoderDecoderBasic
 
 from magenta.music.midi_io import midi_file_to_note_sequence
 from magenta.music.midi_io import midi_file_to_sequence_proto
