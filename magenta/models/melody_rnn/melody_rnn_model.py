@@ -213,7 +213,7 @@ default_configs = {
         magenta.protobuf.generator_pb2.GeneratorDetails(
             id='pitch_diff_rnn_basic',
             description='Melody RNN with one-hot encoding of pitch difference of just -18 to +18.'),
-        magenta.music.PitchDifferenceOneHotEventSequenceEncoderDecoder(
+        magenta.music.PitchDifferenceOneHotEventSequenceEncoderDecoderBasic(
             magenta.music.MelodyPitchDifferenceEncoderDecoderBasic(
                 min_note=DEFAULT_MIN_NOTE,
                 max_note=DEFAULT_MAX_NOTE)),
