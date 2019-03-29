@@ -1735,8 +1735,9 @@ class PitchDifferenceEncoderDecoderBasic(object):
       # When we decode the index that we predicted, we should get the difference. Use this differnce to predict note seq
       event_diff = self.class_index_to_event(chosen_class, event_sequences[i])
 
-      if event_diff < (self._min_note - self._max_note):
-        event_sequences[i].append(event_diff + (self._max_note - self._min_note))
+      max_diff = 18
+      if event_diff < -max_diff:
+        event_sequences[i].append(event_diff + max_diff)
       else:
         ind = len(event_sequences[i]) - 1
         last_event = event_sequences[i][ind]
