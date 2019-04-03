@@ -1519,12 +1519,12 @@ class PitchDifferenceOneHotEncodingBasic(object):
   def event_to_num_steps(self, unused_event):
     """Returns the number of time steps corresponding to an event value.
 
+
     This is used for normalization when computing metrics. Subclasses with
     variable step size should override this method.
 
     Args:
       unused_event: An event value for which to return the number of steps.
-
     Returns:
       The number of steps corresponding to the given event value, defaulting to
       one.
@@ -1639,9 +1639,12 @@ class PitchDifferenceEncoderDecoderBasic(object):
     inputs = []
     labels = []
 
-    last_note = events[0]
+    first_note_index=0
+    while events[first_note_index] in {-1, -2}:
+      first_note_index += 1
+    last_note = events[first_note_index]
 
-    for i in range(1, len(events) - 1):
+    for i in range(first_note_index, len(events) - 1):
       prev_event = events[i-1]
       curr_event = events[i]
       next_event = events[i+1]
@@ -1679,6 +1682,7 @@ class PitchDifferenceEncoderDecoderBasic(object):
     inputs_batch = []
     for events in event_sequences:
       inputs = []
+
       if full_length:
         last_note = events[0]
         for i in range(1, len(events)-1):
@@ -1867,6 +1871,440 @@ class PitchDifferenceOneHotEventSequenceEncoderDecoderBasic(PitchDifferenceEncod
 
     # return self._one_hot_encoding.encode_event(events[position])
     index = self._one_hot_encoding.encode_event(prev_event, curr_event, last_note)
+    # import pdb
+    # pdb.set_trace()
+    return index
+
+  def class_index_to_event(self, class_index, events):
+    """Returns the event for the given class index.
+
+    This is the reverse process of the self.events_to_label method.
+
+    Args:
+      class_index: An integer in the range [0, self.num_classes).
+      events: A list-like sequence of events. This object is not used in this
+          implementation.
+
+    Returns:
+      An event value.
+    """
+    return self._one_hot_encoding.decode_event(class_index)
+
+  def labels_to_num_steps(self, labels):
+    """Returns the total number of time steps for a sequence of class labels.
+
+    Args:
+      labels: A list-like sequence of integers in the range
+          [0, self.num_classes).
+
+    Returns:
+      The total number of time steps for the label sequence, as determined by
+      the one-hot encoding.
+    """
+    events = []
+    for label in labels:
+      events.append(self.class_index_to_event(label, events))
+    return sum(self._one_hot_encoding.event_to_num_steps(event)
+               for event in events)
+
+
+
+# Prakruti - Classes for pitch_diff_start_note model
+
+# There is no need to store and pass previous event in this model since we are taking the pitch
+# difference with respective to the first non-special note.
+
+
+# Prakruti - Added this class equivalent to OneHotEncoing
+class PitchDifferenceOneHotEncodingStartNoteBasic(object):
+  """An interface for specifying a one-hot encoding of individual events."""
+  __metaclass__ = abc.ABCMeta
+
+  @abc.abstractproperty
+  def num_classes(self):
+    """The number of distinct event encodings.
+
+    Returns:
+      An int, the range of ints that can be returned by self.encode_event.
+    """
+    pass
+
+  @abc.abstractproperty
+  def default_event(self):
+    """An event value to use as a default.
+
+    Returns:
+      The default event value.
+    """
+    pass
+
+  @abc.abstractmethod
+  def encode_event(self, curr_event, last_note):
+    """Convert from an event value to an encoding integer.
+
+    Args:
+      event: An event value to encode.
+
+    Returns:
+      An integer representing the encoded event, in range [0, self.num_classes).
+    """
+    pass
+
+  @abc.abstractmethod
+  def decode_event(self, index):
+    """Convert from an encoding integer to an event value.
+
+    Args:
+      index: The encoding, an integer in the range [0, self.num_classes).
+
+    Returns:
+      The decoded event value.
+    """
+    pass
+
+  def event_to_num_steps(self, unused_event):
+    """Returns the number of time steps corresponding to an event value.
+
+
+    This is used for normalization when computing metrics. Subclasses with
+    variable step size should override this method.
+
+    Args:
+      unused_event: An event value for which to return the number of steps.
+    Returns:
+      The number of steps corresponding to the given event value, defaulting to
+      one.
+    """
+    return 1
+
+
+# Prakruti - Added this to change the encode class. Equivalent to EventSequenceEncoderDecoder
+class PitchDifferenceEncoderDecoderStartNoteBasic(object):
+
+  __metaclass__ = abc.ABCMeta
+
+  def __init__(self, _one_hot_encoding):
+    self._min_note = _one_hot_encoding._min_note
+    self._max_note = _one_hot_encoding._max_note
+
+  @abc.abstractproperty
+  def input_size(self):
+    """The size of the input vector used by this model.
+
+    Returns:
+        An integer, the length of the list returned by self.events_to_input.
+    """
+    pass
+
+  @abc.abstractproperty
+  def num_classes(self):
+    """The range of labels used by this model.
+
+    Returns:
+        An integer, the range of integers that can be returned by
+            self.events_to_label.
+    """
+    pass
+
+  @abc.abstractproperty
+  def default_event_label(self):
+    """The class label that represents a default event.
+
+    Returns:
+      An int, the class label that represents a default event.
+    """
+    pass
+
+  @abc.abstractmethod
+  def events_to_input(self, events, position):
+    """Returns the input vector for the event at the given position.
+
+    Args:
+      events: A list-like sequence of events.
+      position: An integer event position in the sequence.
+
+    Returns:
+      An input vector, a self.input_size length list of floats.
+    """
+    pass
+
+  @abc.abstractmethod
+  def events_to_label(self, events, position):
+    """Returns the label for the event at the given position.
+
+    Args:
+      events: A list-like sequence of events.
+      position: An integer event position in the sequence.
+
+    Returns:
+      A label, an integer in the range [0, self.num_classes).
+    """
+    pass
+
+  @abc.abstractmethod
+  def class_index_to_event(self, class_index, events):
+    """Returns the event for the given class index.
+
+    This is the reverse process of the self.events_to_label method.
+
+    Args:
+      class_index: An integer in the range [0, self.num_classes).
+      events: A list-like sequence of events.
+
+    Returns:
+      An event value.
+    """
+    pass
+
+  def labels_to_num_steps(self, labels):
+    """Returns the total number of time steps for a sequence of class labels.
+
+    This is used for normalization when computing metrics. Subclasses with
+    variable step size should override this method.
+
+    Args:
+      labels: A list-like sequence of integers in the range
+          [0, self.num_classes).
+
+    Returns:
+      The total number of time steps for the label sequence, defaulting to one
+      per event.
+    """
+    return len(labels)
+
+  # Prakruti - Modified encode to take difference from first note!
+  def encode(self, events):
+    """Returns a SequenceExample for the given event sequence.
+
+    Args:
+      events: A list-like sequence of events.
+
+    Returns:
+      A tf.train.SequenceExample containing inputs and labels.
+    """
+    inputs = []
+    labels = []
+
+    # We find the index of the first event which is not a special event.
+    first_note_index = 0
+    while events[first_note_index] in {-1, -2}:
+      first_note_index += 1
+    first_note = events[first_note_index]
+
+    for i in range(first_note_index, len(events) - 1):
+      curr_event = events[i]
+      next_event = events[i+1]
+
+      inputs.append(self.events_to_input(curr_event, first_note))
+      labels.append(self.events_to_label(next_event, first_note))
+
+    return sequence_example_lib.make_sequence_example(inputs, labels)
+
+  ### Prakruti - Done!
+  def get_inputs_batch(self, event_sequences, full_length=False):
+    """Returns an inputs batch for the given event sequences.
+
+    Args:
+      event_sequences: A list of list-like event sequences.
+      full_length: If True, the inputs batch will be for the full length of
+          each event sequence. If False, the inputs batch will only be for the
+          last event of each event sequence. A full-length inputs batch is used
+          for the first step of extending the event sequences, since the RNN
+          cell state needs to be initialized with the priming sequence. For
+          subsequent generation steps, only a last-event inputs batch is used.
+
+    Returns:
+      An inputs batch. If `full_length` is True, the shape will be
+      [len(event_sequences), len(event_sequences[0]), INPUT_SIZE]. If
+      `full_length` is False, the shape will be
+      [len(event_sequences), 1, INPUT_SIZE].
+    """
+
+    inputs_batch = []
+    for events in event_sequences:
+      inputs = []
+
+      first_note_index = 0
+      while events[first_note_index] in {-1, -2}:
+        first_note_index += 1
+      first_note = events[first_note_index]
+
+      if full_length:
+        for i in range(first_note_index, len(events)-1):
+          curr_event = events[i]
+          inputs.append(self.events_to_input(curr_event, first_note))
+      else:
+        inputs.append(self.events_to_input(events[len(events) - 1], first_note))
+      inputs_batch.append(inputs)
+    return inputs_batch
+
+  def extend_event_sequences(self, event_sequences, softmax):
+    """Extends the event sequences by sampling the softmax probabilities.
+
+    Args:
+      event_sequences: A list of EventSequence objects.
+      softmax: A list of softmax probability vectors. The list of softmaxes
+          should be the same length as the list of event sequences.
+
+    Returns:
+      A Python list of chosen class indices, one for each event sequence.
+    """
+    chosen_classes = []
+    for i in range(len(event_sequences)):
+      if not isinstance(softmax[0][0][0], numbers.Number):
+        # In this case, softmax is a list of several sub-softmaxes, each
+        # potentially with a different size.
+        # shape: [[beam_size, event_num, softmax_size]]
+        chosen_class = []
+        for sub_softmax in softmax:
+          num_classes = len(sub_softmax[0][0])
+          chosen_class.append(
+            np.random.choice(num_classes, p=sub_softmax[i][-1]))
+      else:
+        # In this case, softmax is just one softmax.
+        # shape: [beam_size, event_num, softmax_size]
+        num_classes = len(softmax[0][0])
+        chosen_class = np.random.choice(num_classes, p=softmax[i][-1])
+
+      # Prakruti
+      # When we decode the index that we predicted, we should get the difference. Use this differnce to predict note seq
+      event_diff = self.class_index_to_event(chosen_class, event_sequences[i])
+      max_diff=18
+      if event_diff < -max_diff:
+        event_sequences[i].append(event_diff + max_diff)
+      else:
+
+        first_note_index = 0
+        while event_sequences[i][first_note_index] in {-1, -2}:
+          first_note_index += 1
+        first_note = event_sequences[i][first_note_index]
+
+        next_note = first_note + event_diff
+        if next_note > self._max_note:
+          event_sequences[i].append(self._max_note - 1)
+        elif next_note < self._min_note:
+          event_sequences[i].append(self._min_note + 1)
+        else:
+          event_sequences[i].append(next_note)
+      chosen_classes.append(chosen_class)
+    return chosen_classes
+
+  def evaluate_log_likelihood(self, event_sequences, softmax):
+    """Evaluate the log likelihood of multiple event sequences.
+
+    Each event sequence is evaluated from the end. If the size of the
+    corresponding softmax vector is 1 less than the number of events, the entire
+    event sequence will be evaluated (other than the first event, whose
+    distribution is not modeled). If the softmax vector is shorter than this,
+    only the events at the end of the sequence will be evaluated.
+
+    Args:
+      event_sequences: A list of EventSequence objects.
+      softmax: A list of softmax probability vectors. The list of softmaxes
+          should be the same length as the list of event sequences.
+
+    Returns:
+      A Python list containing the log likelihood of each event sequence.
+
+    Raises:
+      ValueError: If one of the event sequences is too long with respect to the
+          corresponding softmax vectors.
+    """
+    all_loglik = []
+    for i in range(len(event_sequences)):
+      if len(softmax[i]) >= len(event_sequences[i]):
+        raise ValueError(
+          'event sequence must be longer than softmax vector (%d events but '
+          'softmax vector has length %d)' % (len(event_sequences[i]),
+                                             len(softmax[i])))
+      end_pos = len(event_sequences[i])
+      start_pos = end_pos - len(softmax[i])
+      loglik = 0.0
+      # import pdb
+      # pdb.set_trace()
+
+      first_note_index = 0
+      while event_sequences[i][first_note_index] in {-1, -2}:
+        first_note_index += 1
+      first_note = event_sequences[i][first_note_index]
+
+      for softmax_pos, position in enumerate(range(start_pos+1, end_pos)):
+        index = self.events_to_label(event_sequences[i][position], first_note)
+        if isinstance(index, numbers.Number):
+          loglik += np.log(softmax[i][softmax_pos][index])
+        else:
+          for sub_softmax_i in range(len(index)):
+            loglik += np.log(
+              softmax[i][softmax_pos][sub_softmax_i][index[sub_softmax_i]])
+      all_loglik.append(loglik)
+    return all_loglik
+
+
+# Prakruti - Added this one hot encoder class. Equivalent to OneHotIndexEventSequenceEncoderDecoder
+class PitchDifferenceOneHotEventSequenceEncoderDecoderStartNoteBasic(PitchDifferenceEncoderDecoderStartNoteBasic):
+  """An EventSequenceEncoderDecoder that produces a one-hot encoding."""
+
+  def __init__(self, one_hot_encoding):
+    """Initialize a OneHotEventSequenceEncoderDecoder object.
+
+    Args:
+      one_hot_encoding: A OneHotEncoding object that transforms events to and
+          from integer indices.
+    """
+    self._one_hot_encoding = one_hot_encoding
+    # super(MelodyPitchDifferenceEncoderDecoder, self).__init__(min_note, max_note)
+    super().__init__(self._one_hot_encoding)
+
+  @property
+  def input_size(self):
+    return self._one_hot_encoding.num_classes
+
+  @property
+  def num_classes(self):
+    return self._one_hot_encoding.num_classes
+
+  @property
+  def default_event_label(self):
+    return self._one_hot_encoding.encode_event(
+        self._one_hot_encoding.default_event,
+        self._one_hot_encoding.default_event)
+
+  def events_to_input(self, curr_event, last_note):
+    """Returns the input vector for the given position in the event sequence.
+
+    Returns a one-hot vector for the given position in the event sequence, as
+    determined by the one hot encoding.
+
+    Args:
+      events: A list-like sequence of events.
+      position: An integer event position in the event sequence.
+
+    Returns:
+      An input vector, a list of floats.
+    """
+    input_ = [0.0] * self.input_size
+    index = self._one_hot_encoding.encode_event(curr_event, last_note)
+    input_[index] = 1.0
+    # import pdb
+    # pdb.set_trace()
+    return input_
+
+  def events_to_label(self, curr_event, last_note):
+    """Returns the label for the given position in the event sequence.
+
+    Returns the zero-based index value for the given position in the event
+    sequence, as determined by the one hot encoding.
+
+    Args:
+      events: A list-like sequence of events.
+      position: An integer event position in the event sequence.
+
+    Returns:
+      A label, an integer.
+    """
+
+    # return self._one_hot_encoding.encode_event(events[position])
+    index = self._one_hot_encoding.encode_event(curr_event, last_note)
     # import pdb
     # pdb.set_trace()
     return index
