@@ -42,6 +42,7 @@ class MelodyRnnSequenceGenerator(mm.BaseSequenceGenerator):
     self.steps_per_quarter = steps_per_quarter
 
   def _generate(self, input_sequence, generator_options):
+
     if len(generator_options.input_sections) > 1:
       raise mm.SequenceGeneratorError(
           'This model supports at most one input_sections message, but got %s' %
@@ -110,7 +111,6 @@ class MelodyRnnSequenceGenerator(mm.BaseSequenceGenerator):
                          start_step=max(0, start_step - 1),
                          steps_per_bar=steps_per_bar,
                          steps_per_quarter=self.steps_per_quarter)
-
     # Ensure that the melody extends up to the step we want to start generating.
     melody.set_length(start_step - melody.start_step)
 

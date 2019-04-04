@@ -436,9 +436,6 @@ class MelodyPitchDifferenceEncoderDecoder(encoder_decoder.PitchDifferenceOneHotE
       raise ValueError('melody event greater than max note: %d >= %d' % (
         curr_event, self._max_note))
 
-    # import pdb
-    # pdb.set_trace()
-
     if curr_event in {-1, -2}:
       return curr_event + NUM_SPECIAL_MELODY_EVENTS
     else:
@@ -468,7 +465,7 @@ class MelodyPitchDifferenceEncoderDecoder(encoder_decoder.PitchDifferenceOneHotE
 
 
 # Twisha - Added this new EncoderDecoder class for new model
-class MelodyPitchDifferenceEncoderDecoderBasic(encoder_decoder.PitchDifferenceOneHotEncoding):
+class MelodyPitchDifferenceEncoderDecoderBasic(encoder_decoder.PitchDifferenceOneHotEncodingBasic):
   """Basic one hot encoding for melody events.
 
   Encodes melody events as follows:
@@ -544,8 +541,6 @@ class MelodyPitchDifferenceEncoderDecoderBasic(encoder_decoder.PitchDifferenceOn
       raise ValueError('melody event greater than max note: %d >= %d' % (
         curr_event, self._max_note))
 
-    # import pdb
-    # pdb.set_trace()
     max_diff = 18
     if curr_event in {-1, -2}:
       return curr_event + NUM_SPECIAL_MELODY_EVENTS
