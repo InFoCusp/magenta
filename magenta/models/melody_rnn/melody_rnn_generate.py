@@ -177,7 +177,7 @@ def run_with_flags(generator):
     else:
       last_end_time = 0
     generate_section = generator_options.generate_sections.add(
-        start_time=last_end_time, # Twisha: + seconds_per_step
+        start_time=last_end_time + seconds_per_step, # Twisha: + seconds_per_step
         end_time=total_seconds)
 
     if generate_section.start_time >= generate_section.end_time:
