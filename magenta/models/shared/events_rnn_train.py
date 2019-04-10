@@ -72,8 +72,12 @@ def run_training(build_graph_fn, train_dir, num_training_steps=None,
               max_to_keep=checkpoints_to_keep,
               keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours))
 
+      config = tf.ConfigProto()
+      config.gpu_options.allow_growth = True
+
       tf.logging.info('Starting training loop...')
       tf.contrib.training.train(
+          config=config,
           train_op=train_op,
           logdir=train_dir,
           scaffold=scaffold,
