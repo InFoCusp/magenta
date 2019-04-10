@@ -308,9 +308,9 @@ class EventSequenceEncoderDecoder(object):
           num_classes = len(sub_softmax[0][0])
 
           #Twisha
-          chosen_class.append(np.argmax(sub_softmax[i][-1]))
-          # chosen_class.append(
-          #     np.random.choice(num_classes, p=sub_softmax[i][-1]))
+          # chosen_class.append(np.argmax(sub_softmax[i][-1]))
+          chosen_class.append(
+              np.random.choice(num_classes, p=sub_softmax[i][-1]))
       else:
         # In this case, softmax is just one softmax.
         # shape: [beam_size, event_num, softmax_size]
