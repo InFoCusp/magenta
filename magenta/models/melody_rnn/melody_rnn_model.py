@@ -237,4 +237,21 @@ default_configs = {
             rnn_layer_sizes=[128, 128],
             dropout_keep_prob=0.5,
             clip_norm=5,
+            learning_rate=0.001)),
+
+
+    'pitch_diff_rnn_start_note_attention': MelodyRnnConfig(
+        magenta.protobuf.generator_pb2.GeneratorDetails(
+            id='pitch_diff_rnn_start_note_attention',
+            description='Melody RNN with one-hot encoding of pitch difference of just -18 to +18 with difference taken from starting note and attention RNN'),
+        magenta.music.PitchDifferenceOneHotEventSequenceEncoderDecoderStartNoteBasic(
+            magenta.music.MelodyPitchDifferenceEncoderDecoderStartNoteBasic(
+                min_note=DEFAULT_MIN_NOTE,
+                max_note=DEFAULT_MAX_NOTE)),
+        tf.contrib.training.HParams(
+            batch_size=128,
+            rnn_layer_sizes=[128, 128],
+            dropout_keep_prob=0.5,
+            attn_length=40,
+            clip_norm=5,
             learning_rate=0.001))}
