@@ -60,6 +60,7 @@ from magenta.music.encoder_decoder import PitchDifferenceOneHotEventSequenceEnco
 from magenta.music.encoder_decoder import PitchDifferenceEncoderDecoder
 from magenta.music.encoder_decoder import PitchDifferenceOneHotEventSequenceEncoderDecoderBasic
 from magenta.music.encoder_decoder import PitchDifferenceEncoderDecoderBasic
+from magenta.music.encoder_decoder import MelodyPitchDifferenceOneHotEventSequenceEncoderDecoder
 
 # Prakruti
 from magenta.music.encoder_decoder import PitchDifferenceOneHotEncodingStartNoteBasic
