@@ -1908,7 +1908,6 @@ class PitchDifferenceOneHotEventSequenceEncoderDecoderBasic(PitchDifferenceEncod
                for event in events)
 
 
-
 # Prakruti - Classes for pitch_diff_start_note model
 
 # There is no need to store and pass previous event in this model since we are taking the pitch
@@ -2339,4 +2338,106 @@ class PitchDifferenceOneHotEventSequenceEncoderDecoderStartNoteBasic(PitchDiffer
     for label in labels:
       events.append(self.class_index_to_event(label, events))
     return sum(self._one_hot_encoding.event_to_num_steps(event)
+               for event in events)
+
+
+# Twisha - Adding a new class for supporting two encoder decoders
+class MelodyPitchDifferenceOneHotEventSequenceEncoderDecoder():
+  """An EventSequenceEncoderDecoder that produces a one-hot encoding."""
+
+  def __init__(self, input_one_hot_encoding, output_one_hot_encoding):
+    """Initialize a OneHotEventSequenceEncoderDecoder object.
+
+    Args:
+      one_hot_encoding: A OneHotEncoding object that transforms events to and
+          from integer indices.
+    """
+    self.input_one_hot_encoding = input_one_hot_encoding
+    self.output_one_hot_encoding = output_one_hot_encoding
+
+  @property
+  def input_size(self):
+    return self.input_one_hot_encoding.num_classes
+
+  @property
+  def num_classes(self):
+    return self.output_one_hot_encoding.num_classes
+
+  @property
+  def default_event_label(self):
+    return self.output_one_hot_encoding.encode_event(
+        self.output_one_hot_encoding.default_event, self.output_one_hot_encoding.default_event,
+        self.output_one_hot_encoding.default_event)
+
+  def events_to_input(self, prev_event, curr_event, last_note):
+    """Returns the input vector for the given position in the event sequence.
+
+    Returns a one-hot vector for the given position in the event sequence, as
+    determined by the one hot encoding.
+
+    Args:
+      events: A list-like sequence of events.
+      position: An integer event position in the event sequence.
+
+    Returns:
+      An input vector, a list of floats.
+    """
+    input_ = [0.0] * self.input_size
+    # input_[self._one_hot_encoding.encode_event(events[position])] = 1.0
+    index = self.input_one_hot_encoding.encode_event(prev_event, curr_event, last_note)
+    input_[index] = 1.0
+    # import pdb
+    # pdb.set_trace()
+    return input_
+
+  def events_to_label(self, prev_event, curr_event, last_note):
+    """Returns the label for the given position in the event sequence.
+
+    Returns the zero-based index value for the given position in the event
+    sequence, as determined by the one hot encoding.
+
+    Args:
+      events: A list-like sequence of events.
+      position: An integer event position in the event sequence.
+
+    Returns:
+      A label, an integer.
+    """
+
+    # return self._one_hot_encoding.encode_event(events[position])
+    index = self.output_one_hot_encoding.encode_event(prev_event, curr_event, last_note)
+    # import pdb
+    # pdb.set_trace()
+    return index
+
+  def class_index_to_event(self, class_index, events):
+    """Returns the event for the given class index.
+
+    This is the reverse process of the self.events_to_label method.
+
+    Args:
+      class_index: An integer in the range [0, self.num_classes).
+      events: A list-like sequence of events. This object is not used in this
+          implementation.
+
+    Returns:
+      An event value.
+    """
+    return self.output_one_hot_encoding.decode_event(class_index)
+
+  def labels_to_num_steps(self, labels):
+    """Returns the total number of time steps for a sequence of class labels.
+
+    Args:
+      labels: A list-like sequence of integers in the range
+          [0, self.num_classes).
+
+    Returns:
+      The total number of time steps for the label sequence, as determined by
+      the one-hot encoding.
+    """
+    events = []
+    for label in labels:
+      events.append(self.class_index_to_event(label, events))
+    return sum(self.output_one_hot_encoding.event_to_num_steps(event)
                for event in events)

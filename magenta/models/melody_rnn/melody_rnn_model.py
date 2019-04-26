@@ -244,9 +244,13 @@ default_configs = {
             id='melody_pitch_diff',
             description='Melody RNN with input as one-hot encoding and output as pitch difference of just -18 to +18 with difference taken from starting note'),
         magenta.music.MelodyPitchDifferenceOneHotEventSequenceEncoderDecoder(
-            magenta.music.MelodyPitchDifferenceEncoderDecoder(
+            magenta.music.MelodyOneHotEncoding(
                 min_note=DEFAULT_MIN_NOTE,
-                max_note=DEFAULT_MAX_NOTE)),
+                max_note=DEFAULT_MAX_NOTE),
+            magenta.music.MelodyPitchDifferenceEncoderDecoderStartNoteBasic(
+                min_note=DEFAULT_MIN_NOTE,
+                max_note=DEFAULT_MAX_NOTE)
+        ),
         tf.contrib.training.HParams(
             batch_size=128,
             rnn_layer_sizes=[128, 128],
