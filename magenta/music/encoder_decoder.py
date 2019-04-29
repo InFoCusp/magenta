@@ -2628,7 +2628,7 @@ class MelodyPitchDifferenceOneHotEventSequenceEncoderDecoder(MelodyPitchDifferen
   @property
   def default_event_label(self):
     return self.output_one_hot_encoding.encode_event(
-        self.output_one_hot_encoding.default_event, self.output_one_hot_encoding.default_event,
+        self.output_one_hot_encoding.default_event,
         self.output_one_hot_encoding.default_event)
 
   def events_to_input(self, curr_event):
