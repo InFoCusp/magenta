@@ -2380,7 +2380,7 @@ class MelodyPitchDifferenceEncoderDecoder(object):
       pass
 
     @abc.abstractmethod
-    def events_to_input(self, events, position):
+    def events_to_input(self, event):
       """Returns the input vector for the event at the given position.
 
       Args:
@@ -2436,7 +2436,7 @@ class MelodyPitchDifferenceEncoderDecoder(object):
       """
       return len(labels)
 
-    # Prakruti - Modified encode to take difference from first note!
+    # Twisha - Modified encode to take current melody for input and  difference from first note for labels
     def encode(self, events):
       """Returns a SequenceExample for the given event sequence.
 
@@ -2464,7 +2464,7 @@ class MelodyPitchDifferenceEncoderDecoder(object):
 
       return sequence_example_lib.make_sequence_example(inputs, labels)
 
-    ### Prakruti - Done!
+    ### Twisha - Done!
     def get_inputs_batch(self, event_sequences, full_length=False):
       """Returns an inputs batch for the given event sequences.
 
@@ -2496,9 +2496,9 @@ class MelodyPitchDifferenceEncoderDecoder(object):
         if full_length:
           for i in range(first_note_index, len(events) - 1):
             curr_event = events[i]
-            inputs.append(self.events_to_input(curr_event, first_note))
+            inputs.append(self.events_to_input(curr_event))
         else:
-          inputs.append(self.events_to_input(events[len(events) - 1], first_note))
+          inputs.append(self.events_to_input(events[len(events) - 1]))
         inputs_batch.append(inputs)
       return inputs_batch
 
@@ -2616,6 +2616,7 @@ class MelodyPitchDifferenceOneHotEventSequenceEncoderDecoder(MelodyPitchDifferen
     """
     self.input_one_hot_encoding = input_one_hot_encoding
     self.output_one_hot_encoding = output_one_hot_encoding
+    super().__init__(input_one_hot_encoding, output_one_hot_encoding)
 
   @property
   def input_size(self):
