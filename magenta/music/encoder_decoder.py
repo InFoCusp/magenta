@@ -2653,7 +2653,7 @@ class MelodyPitchDifferenceOneHotEventSequenceEncoderDecoder(MelodyPitchDifferen
     # pdb.set_trace()
     return input_
 
-  def events_to_label(self, curr_event, last_note):
+  def events_to_label(self, next_event, first_note):
     """Returns the label for the given position in the event sequence.
 
     Returns the zero-based index value for the given position in the event
@@ -2668,7 +2668,7 @@ class MelodyPitchDifferenceOneHotEventSequenceEncoderDecoder(MelodyPitchDifferen
     """
 
     # return self._one_hot_encoding.encode_event(events[position])
-    index = self.output_one_hot_encoding.encode_event(curr_event, last_note)
+    index = self.output_one_hot_encoding.encode_event(next_event, first_note)
     # import pdb
     # pdb.set_trace()
     return index
