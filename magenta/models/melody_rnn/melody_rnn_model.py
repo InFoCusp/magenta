@@ -192,5 +192,20 @@ default_configs = {
             dropout_keep_prob=0.5,
             attn_length=40,
             clip_norm=3,
+            learning_rate=0.001)),
+
+    'bunch_notes_input': MelodyRnnConfig(
+        magenta.protobuf.generator_pb2.GeneratorDetails(
+            id='bunch_notes_input',
+            description='Melody RNN with one-hot encoding of 4 notes - current plus previous 3.'),
+        magenta.music.OneHotEventSequenceEncoderDecoder(
+            magenta.music.MelodyOneHotEncoding(
+                min_note=DEFAULT_MIN_NOTE,
+                max_note=DEFAULT_MAX_NOTE)),
+        tf.contrib.training.HParams(
+            batch_size=128,
+            rnn_layer_sizes=[512, 512],
+            dropout_keep_prob=0.5,
+            clip_norm=5,
             learning_rate=0.001))
 }
