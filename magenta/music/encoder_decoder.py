@@ -1321,7 +1321,7 @@ class BunchOneHotEventSequenceEncoderDecoder(BunchEventSequenceEncoderDecoder):
       An input vector, a list of floats.
     """
     input_ = [0.0] * self.input_size
-    note_vector_size = self.input_size/self.num_notes
+    note_vector_size = int(self.input_size/self.num_notes)
     for i in range(self.num_notes):
       input_[note_vector_size*i + self._one_hot_encoding.encode_event(events[position+i])] = 1.0
     return input_
