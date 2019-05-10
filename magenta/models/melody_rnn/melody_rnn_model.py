@@ -198,10 +198,10 @@ default_configs = {
         magenta.protobuf.generator_pb2.GeneratorDetails(
             id='bunch_notes_input',
             description='Melody RNN with one-hot encoding of 4 notes - current plus previous 3.'),
-        magenta.music.OneHotEventSequenceEncoderDecoder(
+        magenta.music.BunchOneHotEventSequenceEncoderDecoder(
             magenta.music.MelodyOneHotEncoding(
                 min_note=DEFAULT_MIN_NOTE,
-                max_note=DEFAULT_MAX_NOTE)),
+                max_note=DEFAULT_MAX_NOTE), num_notes=4),
         tf.contrib.training.HParams(
             batch_size=128,
             rnn_layer_sizes=[512, 512],

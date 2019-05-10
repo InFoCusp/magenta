@@ -1032,3 +1032,344 @@ class EncoderPipeline(pipeline.Pipeline):
   def transform(self, seq):
     encoded = self._encoder_decoder.encode(seq)
     return [encoded]
+
+
+class BunchEventSequenceEncoderDecoder(object):
+  """An abstract class for translating between events and model data.
+
+  When building your dataset, the `encode` method takes in an event sequence
+  and returns a SequenceExample of inputs and labels. These SequenceExamples
+  are fed into the model during training and evaluation.
+
+  During generation, the `get_inputs_batch` method takes in a list of the
+  current event sequences and returns an inputs batch which is fed into the
+  model to predict what the next event should be for each sequence. The
+  `extend_event_sequences` method takes in the list of event sequences and the
+  softmax returned by the model and extends each sequence by one step by
+  sampling from the softmax probabilities. This loop (`get_inputs_batch` ->
+  inputs batch is fed through the model to get a softmax ->
+  `extend_event_sequences`) is repeated until the generated event sequences
+  have reached the desired length.
+
+  Properties:
+    input_size: The length of the list returned by self.events_to_input.
+    num_classes: The range of ints that can be returned by
+        self.events_to_label.
+
+  The `input_size`, `num_classes`, `events_to_input`, `events_to_label`, and
+  `class_index_to_event` method must be overwritten to be specific to your
+  model.
+  """
+
+  __metaclass__ = abc.ABCMeta
+
+  @abc.abstractproperty
+  def input_size(self):
+    """The size of the input vector used by this model.
+
+    Returns:
+        An integer, the length of the list returned by self.events_to_input.
+    """
+    pass
+
+  @abc.abstractproperty
+  def num_notes(self):
+    """The size of the input vector used by this model.
+
+    Returns:
+        An integer, the length of the list returned by self.events_to_input.
+    """
+    pass
+
+  @abc.abstractproperty
+  def num_classes(self):
+    """The range of labels used by this model.
+
+    Returns:
+        An integer, the range of integers that can be returned by
+            self.events_to_label.
+    """
+    pass
+
+  @abc.abstractproperty
+  def default_event_label(self):
+    """The class label that represents a default event.
+
+    Returns:
+      An int, the class label that represents a default event.
+    """
+    pass
+
+  @abc.abstractmethod
+  def events_to_input(self, events, position):
+    """Returns the input vector for the event at the given position.
+
+    Args:
+      events: A list-like sequence of events.
+      position: An integer event position in the sequence.
+
+    Returns:
+      An input vector, a self.input_size length list of floats.
+    """
+    pass
+
+  @abc.abstractmethod
+  def events_to_label(self, events, position):
+    """Returns the label for the event at the given position.
+
+    Args:
+      events: A list-like sequence of events.
+      position: An integer event position in the sequence.
+
+    Returns:
+      A label, an integer in the range [0, self.num_classes).
+    """
+    pass
+
+  @abc.abstractmethod
+  def class_index_to_event(self, class_index, events):
+    """Returns the event for the given class index.
+
+    This is the reverse process of the self.events_to_label method.
+
+    Args:
+      class_index: An integer in the range [0, self.num_classes).
+      events: A list-like sequence of events.
+
+    Returns:
+      An event value.
+    """
+    pass
+
+  def labels_to_num_steps(self, labels):
+    """Returns the total number of time steps for a sequence of class labels.
+
+    This is used for normalization when computing metrics. Subclasses with
+    variable step size should override this method.
+
+    Args:
+      labels: A list-like sequence of integers in the range
+          [0, self.num_classes).
+
+    Returns:
+      The total number of time steps for the label sequence, defaulting to one
+      per event.
+    """
+    return len(labels)
+
+  def encode(self, events):
+    """Returns a SequenceExample for the given event sequence.
+
+    Args:
+      events: A list-like sequence of events.
+
+    Returns:
+      A tf.train.SequenceExample containing inputs and labels.
+    """
+    inputs = []
+    labels = []
+    for i in range(len(events) - 1 - self.num_notes):
+      inputs.append(self.events_to_input(events, i))
+      labels.append(self.events_to_label(events, i + 1))
+    return sequence_example_lib.make_sequence_example(inputs, labels)
+
+  def get_inputs_batch(self, event_sequences, full_length=False):
+    """Returns an inputs batch for the given event sequences.
+
+    Args:
+      event_sequences: A list of list-like event sequences.
+      full_length: If True, the inputs batch will be for the full length of
+          each event sequence. If False, the inputs batch will only be for the
+          last event of each event sequence. A full-length inputs batch is used
+          for the first step of extending the event sequences, since the RNN
+          cell state needs to be initialized with the priming sequence. For
+          subsequent generation steps, only a last-event inputs batch is used.
+
+    Returns:
+      An inputs batch. If `full_length` is True, the shape will be
+      [len(event_sequences), len(event_sequences[0]), INPUT_SIZE]. If
+      `full_length` is False, the shape will be
+      [len(event_sequences), 1, INPUT_SIZE].
+    """
+    inputs_batch = []
+    for events in event_sequences:
+      inputs = []
+      if full_length:
+        for i in range(len(events) - self.num_notes):
+          inputs.append(self.events_to_input(events, i))
+      else:
+        inputs.append(self.events_to_input(events, len(events) - 1 - self.num_notes))
+      inputs_batch.append(inputs)
+    return inputs_batch
+
+  def extend_event_sequences(self, event_sequences, softmax):
+    """Extends the event sequences by sampling the softmax probabilities.
+
+    Args:
+      event_sequences: A list of EventSequence objects.
+      softmax: A list of softmax probability vectors. The list of softmaxes
+          should be the same length as the list of event sequences.
+
+    Returns:
+      A Python list of chosen class indices, one for each event sequence.
+    """
+    chosen_classes = []
+    for i in range(len(event_sequences)):
+      if not isinstance(softmax[0][0][0], numbers.Number):
+        # In this case, softmax is a list of several sub-softmaxes, each
+        # potentially with a different size.
+        # shape: [[beam_size, event_num, softmax_size]]
+        chosen_class = []
+        for sub_softmax in softmax:
+          num_classes = len(sub_softmax[0][0])
+          chosen_class.append(
+              np.random.choice(num_classes, p=sub_softmax[i][-1]))
+      else:
+        # In this case, softmax is just one softmax.
+        # shape: [beam_size, event_num, softmax_size]
+        num_classes = len(softmax[0][0])
+        chosen_class = np.random.choice(num_classes, p=softmax[i][-1])
+      event = self.class_index_to_event(chosen_class, event_sequences[i])
+      event_sequences[i].append(event)
+      chosen_classes.append(chosen_class)
+    return chosen_classes
+
+  def evaluate_log_likelihood(self, event_sequences, softmax):
+    """Evaluate the log likelihood of multiple event sequences.
+
+    Each event sequence is evaluated from the end. If the size of the
+    corresponding softmax vector is 1 less than the number of events, the entire
+    event sequence will be evaluated (other than the first event, whose
+    distribution is not modeled). If the softmax vector is shorter than this,
+    only the events at the end of the sequence will be evaluated.
+
+    Args:
+      event_sequences: A list of EventSequence objects.
+      softmax: A list of softmax probability vectors. The list of softmaxes
+          should be the same length as the list of event sequences.
+
+    Returns:
+      A Python list containing the log likelihood of each event sequence.
+
+    Raises:
+      ValueError: If one of the event sequences is too long with respect to the
+          corresponding softmax vectors.
+    """
+    all_loglik = []
+    for i in range(len(event_sequences)):
+      if len(softmax[i]) >= len(event_sequences[i]):
+        raise ValueError(
+            'event sequence must be longer than softmax vector (%d events but '
+            'softmax vector has length %d)' % (len(event_sequences[i]),
+                                               len(softmax[i])))
+      end_pos = len(event_sequences[i])
+      start_pos = end_pos - len(softmax[i])
+      loglik = 0.0
+      for softmax_pos, position in enumerate(range(start_pos, end_pos)):
+        index = self.events_to_label(event_sequences[i], position)
+        if isinstance(index, numbers.Number):
+          loglik += np.log(softmax[i][softmax_pos][index])
+        else:
+          for sub_softmax_i in range(len(index)):
+            loglik += np.log(
+                softmax[i][softmax_pos][sub_softmax_i][index[sub_softmax_i]])
+      all_loglik.append(loglik)
+    return all_loglik
+
+
+class BunchOneHotEventSequenceEncoderDecoder(BunchEventSequenceEncoderDecoder):
+  """An EventSequenceEncoderDecoder that produces a one-hot encoding."""
+
+  def __init__(self, one_hot_encoding, num_notes):
+    """Initialize a OneHotEventSequenceEncoderDecoder object.
+
+    Args:
+      one_hot_encoding: A OneHotEncoding object that transforms events to and
+          from integer indices.
+    """
+    self._one_hot_encoding = one_hot_encoding
+    self.num_notes = num_notes
+    super().__init__()
+
+  @property
+  def input_size(self):
+    return self.num_notes*self._one_hot_encoding.num_classes
+
+  @property
+  def num_notes(self):
+    return self.num_notes
+
+  @property
+  def num_classes(self):
+    return self._one_hot_encoding.num_classes
+
+  @property
+  def default_event_label(self):
+    return self._one_hot_encoding.encode_event(
+        self._one_hot_encoding.default_event)
+
+  def events_to_input(self, events, position):
+    """Returns the input vector for the given position in the event sequence.
+
+    Returns a one-hot vector for the given position in the event sequence, as
+    determined by the one hot encoding.
+
+    Args:
+      events: A list-like sequence of events.
+      position: An integer event position in the event sequence.
+
+    Returns:
+      An input vector, a list of floats.
+    """
+    input_ = [0.0] * self.input_size
+    note_vector_size = self.input_size/self.num_notes
+    for i in range(self.num_notes):
+      input_[note_vector_size*i + self._one_hot_encoding.encode_event(events[position+i])] = 1.0
+    return input_
+
+  def events_to_label(self, events, position):
+    """Returns the label for the given position in the event sequence.
+
+    Returns the zero-based index value for the given position in the event
+    sequence, as determined by the one hot encoding.
+
+    Args:
+      events: A list-like sequence of events.
+      position: An integer event position in the event sequence.
+
+    Returns:
+      A label, an integer.
+    """
+    return self._one_hot_encoding.encode_event(events[position])
+
+  def class_index_to_event(self, class_index, events):
+    """Returns the event for the given class index.
+
+    This is the reverse process of the self.events_to_label method.
+
+    Args:
+      class_index: An integer in the range [0, self.num_classes).
+      events: A list-like sequence of events. This object is not used in this
+          implementation.
+
+    Returns:
+      An event value.
+    """
+    return self._one_hot_encoding.decode_event(class_index)
+
+  def labels_to_num_steps(self, labels):
+    """Returns the total number of time steps for a sequence of class labels.
+
+    Args:
+      labels: A list-like sequence of integers in the range
+          [0, self.num_classes).
+
+    Returns:
+      The total number of time steps for the label sequence, as determined by
+      the one-hot encoding.
+    """
+    events = []
+    for label in labels:
+      events.append(self.class_index_to_event(label, events))
+    return sum(self._one_hot_encoding.event_to_num_steps(event)
+               for event in events)
