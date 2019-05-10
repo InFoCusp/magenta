@@ -1170,7 +1170,7 @@ class BunchEventSequenceEncoderDecoder(object):
     labels = []
     for i in range(len(events) - 1 - self.num_notes):
       inputs.append(self.events_to_input(events, i))
-      labels.append(self.events_to_label(events, i + 1))
+      labels.append(self.events_to_label(events, i + self.num_notes))
     return sequence_example_lib.make_sequence_example(inputs, labels)
 
   def get_inputs_batch(self, event_sequences, full_length=False):
@@ -1288,16 +1288,15 @@ class BunchOneHotEventSequenceEncoderDecoder(BunchEventSequenceEncoderDecoder):
           from integer indices.
     """
     self._one_hot_encoding = one_hot_encoding
-    self.num_notes = num_notes
-    super().__init__()
+    self._num_notes = num_notes
 
   @property
   def input_size(self):
-    return self.num_notes*self._one_hot_encoding.num_classes
+    return self._num_notes*self._one_hot_encoding.num_classes
 
   @property
   def num_notes(self):
-    return self.num_notes
+    return self._num_notes
 
   @property
   def num_classes(self):
