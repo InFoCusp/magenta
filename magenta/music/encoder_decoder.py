@@ -1198,7 +1198,7 @@ class BunchEventSequenceEncoderDecoder(object):
         for i in range(len(events) - self.num_notes):
           inputs.append(self.events_to_input(events, i))
       else:
-        inputs.append(self.events_to_input(events, len(events) - 1 - self.num_notes))
+        inputs.append(self.events_to_input(events, len(events) - self.num_notes))
       inputs_batch.append(inputs)
     return inputs_batch
 
