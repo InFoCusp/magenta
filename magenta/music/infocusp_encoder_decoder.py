@@ -80,7 +80,7 @@ class NextNoteDistributionEventSequenceEncoderDecoder(encoder_decoder.EventSeque
 
     input_ = overall_proximity_count[index].copy()
     input_ = np.array(input_, dtype='float')
-    input_[0] = input_[0] / input_.sum()
+    input_[0] = input_[0] / input_.sum() # normalizing -2 separately because too large in number
     input_[1:] = input_[1:]/input_[1:].sum()
     input_[index] += 1
 
