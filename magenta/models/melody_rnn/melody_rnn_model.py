@@ -192,5 +192,23 @@ default_configs = {
             dropout_keep_prob=0.5,
             attn_length=40,
             clip_norm=3,
+            learning_rate=0.001)),
+
+    # Config for neighbor distribution model
+    # Model description: One hot encoding of current note + concatenation of probability distribution of next 5 notes
+    # https://docs.google.com/document/d/1YSR9yF8NyAtqdMzDOZZmyMnmrUTC1BLP3r4NWC990js/edit
+    'neighbor_dist_rnn': MelodyRnnConfig(
+        magenta.protobuf.generator_pb2.GeneratorDetails(
+            id='neighbor_dist_rnn',
+            description='Melody RNN with neighbor note distribution encoded.'),
+        magenta.music.NeighborDistributionEventSequenceEncoderDecoder(
+            magenta.music.MelodyOneHotEncoding(
+                min_note=DEFAULT_MIN_NOTE,
+                max_note=DEFAULT_MAX_NOTE)),
+        tf.contrib.training.HParams(
+            batch_size=128,
+            rnn_layer_sizes=[128, 128],
+            dropout_keep_prob=0.5,
+            clip_norm=5,
             learning_rate=0.001))
 }
