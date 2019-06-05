@@ -38,7 +38,7 @@ DEFAULT_LOOKBACK_DISTANCES = [DEFAULT_STEPS_PER_BAR, DEFAULT_STEPS_PER_BAR * 2]
 # Twisha - Added this encoder class which uses the context vector obtained directly from data instead of one hot vector
 # Equivalent to OneHotEventSequenceEncoderDecoder
 class NeighborDistributionEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
-  """An EventSequenceEncoderDecoder that produces a one-hot encoding of current note and concatenates that with probability distribution of next 5 notes"""
+  """An implementation of EventSequenceEncoderDecoder that produces a one-hot encoding of current note and concatenates that with probability distribution of next 5 notes"""
 
   def __init__(self, one_hot_encoding):
     """Initialize a OneHotEventSequenceEncoderDecoder object.
@@ -64,15 +64,16 @@ class NeighborDistributionEventSequenceEncoderDecoder(EventSequenceEncoderDecode
   def events_to_input(self, events, position):
     """Returns the input vector for the given position in the event sequence.
     Returns a one-hot vector for the given position in the event sequence, as
-    determined by the one hot encoding.
+    determined by the one hot encoding which is then augmented with probability distribution of next 5 notes.
+    This distribution is pre-calculated and stored in a file and loaded here.
     Args:
       events: A list-like sequence of events.
       position: An integer event position in the event sequence.
     Returns:
       An input vector, a list of floats.
     """
-    base_data_path = os.environ['BASE_DATA_PATH']
-    filename = os.path.join(base_data_path, 'model_weights/overall_neighbors.npz')
+    data_dir = os.environ['BASE_DATA_PATH']
+    filename = os.path.join(data_dir, 'model_weights/overall_neighbors.npz')
     overall_neighbors = np.load(filename)
 
     index = self._one_hot_encoding.encode_event(events[position])
@@ -81,7 +82,7 @@ class NeighborDistributionEventSequenceEncoderDecoder(EventSequenceEncoderDecode
     for key in overall_neighbors:
         neighbor = overall_neighbors[key][index].copy()
         neighbor = np.array(neighbor, dtype='float')
-        neighbor[0] = neighbor[0] / neighbor.sum()
+        neighbor[0] = neighbor[0] / neighbor.sum() # normalizing -2 separately because too large in number
         neighbor[1:] = neighbor[1:] / neighbor[1:].sum()
         if key == 'overall_neighbor1_count':
             neighbor[index] += 1
