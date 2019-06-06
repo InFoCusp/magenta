@@ -31,6 +31,7 @@ import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 import os
+import h5py
 
 DEFAULT_STEPS_PER_BAR = constants.DEFAULT_STEPS_PER_BAR
 DEFAULT_LOOKBACK_DISTANCES = [DEFAULT_STEPS_PER_BAR, DEFAULT_STEPS_PER_BAR * 2]
