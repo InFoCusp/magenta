@@ -37,7 +37,7 @@ DEFAULT_LOOKBACK_DISTANCES = [DEFAULT_STEPS_PER_BAR, DEFAULT_STEPS_PER_BAR * 2]
 
 # Twisha - Added this encoder class which uses the context vector obtained directly from data instead of one hot vector
 # Equivalent to OneHotEventSequenceEncoderDecoder
-class NeighborDistributionEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
+class NeighborDistributionEventSequenceEncoderDecoder(encoder_decoder.EventSequenceEncoderDecoder):
   """An implementation of EventSequenceEncoderDecoder that produces a one-hot encoding of current note and concatenates that with probability distribution of next 5 notes"""
 
   def __init__(self, one_hot_encoding):
